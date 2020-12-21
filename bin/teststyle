@@ -1,7 +1,0 @@
-#!/bin/bash
-
-set -Eeuox pipefail
-
-pycodestyle pdftools
-pydocstyle pdftools
-pylint pdftools
