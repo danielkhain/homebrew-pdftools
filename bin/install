@@ -5,5 +5,5 @@ set -Eeuox pipefail
 pip3 install PyPDF2
 pip3 install argparse
 
-mv ../pdftools ~/bin/
-rm -rf pdftools/
+mv pdftools ~/bin/
+rm -rf .
