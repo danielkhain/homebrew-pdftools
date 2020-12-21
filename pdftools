@@ -1,0 +1,215 @@
+#!/usr/bin/env python3
+"""PDF Command Line Tool."""
+import sys
+import argparse
+import PyPDF2
+
+
+def page_input(pages_in, size):
+    """Figure out pages and check for good input."""
+    pages = []
+    for val in pages_in.split(','):
+        if len(val.split(':')) == 1:
+            if ((not val.isnumeric()) or
+                    (not int(val)-1 in range(size))):
+                print("Bad page number.")
+                sys.exit(0)
+            pages.append(int(val))
+        else:
+            start = val.split(':')[0]
+            end = val.split(':')[1]
+            if ((not start.isnumeric()) or (not end.isnumeric()) or
+                    (start > end) or (not int(start)-1 in
+                                      range(size)) or
+                    (not int(end)-1 in range(size))):
+                print("Bad page number.")
+                sys.exit(0)
+            pages += range(int(start), int(end)+1)
+    return pages
+
+
+def merge(filenames, output):
+    """Merge PDFs and output result."""
+    pdf_writer = PyPDF2.PdfFileWriter()
+
+    # Merge files.
+    for pdf in filenames:
+        try:
+            pdf_reader = PyPDF2.PdfFileReader(pdf)
+        except FileNotFoundError:
+            print("File", pdf, "could not be opened.")
+            sys.exit(0)
+        for page in range(pdf_reader.getNumPages()):
+            pdf_writer.addPage(pdf_reader.getPage(page))
+
+    # Write to output.
+    with open(output, 'wb') as merged_output:
+        pdf_writer.write(merged_output)
+    print("Successfully merged files!")
+
+
+def remove(filename, pages_in):
+    """Remove pages from PDF."""
+    pdf_writer = PyPDF2.PdfFileWriter()
+
+    try:
+        pdf_reader = PyPDF2.PdfFileReader(filename)
+    except FileNotFoundError:
+        print("File", filename, "could not be opened.")
+        sys.exit(0)
+
+    pages = page_input(pages_in, pdf_reader.getNumPages())
+
+    # Find unchanged pages.
+    for page in range(pdf_reader.getNumPages()):
+        if page+1 not in pages:
+            pdf_writer.addPage(pdf_reader.getPage(page))
+
+    # Write to output
+    with open(filename, 'wb') as output:
+        pdf_writer.write(output)
+    print("Successfully removed pages", pages, "from", filename)
+
+
+def swap(filename, pg_one, pg_two):
+    """Swap pages."""
+    pdf_writer = PyPDF2.PdfFileWriter()
+
+    try:
+        pdf_reader = PyPDF2.PdfFileReader(filename)
+    except FileNotFoundError:
+        print("File", filename, "could not be opened.")
+        sys.exit(0)
+
+    # Check that pages in range.
+    if pg_one not in range(pdf_reader.getNumPages()):
+        print("Page", pg_one+1, "out of range.")
+        sys.exit(0)
+    if pg_two not in range(pdf_reader.getNumPages()):
+        print("Page", pg_two+1, "out of range.")
+        sys.exit(0)
+
+    # Find unchanged pages.
+    for page in range(pdf_reader.getNumPages()):
+        if page == pg_one:
+            pdf_writer.addPage(pdf_reader.getPage(pg_two))
+        elif page == pg_two:
+            pdf_writer.addPage(pdf_reader.getPage(pg_one))
+        else:
+            pdf_writer.addPage(pdf_reader.getPage(page))
+
+    # Write to output.
+    with open(filename, 'wb') as output:
+        pdf_writer.write(output)
+    print("Successfully swapped pages", pg_one+1, "and",
+          pg_two+1, "in", filename)
+
+
+def insert(dest, ins_pg, source, pages_in):
+    """Insert some pages into dest PDF."""
+
+    pdf_writer = PyPDF2.PdfFileWriter()
+
+    try:
+        dest_reader = PyPDF2.PdfFileReader(dest)
+        src_reader = PyPDF2.PdfFileReader(source)
+    except FileNotFoundError:
+        print("File could not be opened.")
+        sys.exit(0)
+
+    pages = page_input(pages_in, src_reader.getNumPages())
+
+    if ins_pg not in range(dest_reader.getNumPages()):
+        print("Insert location is out of bounds.")
+        sys.exit(0)
+
+    # Find unchanged pages.
+    for page in range(dest_reader.getNumPages()):
+        if page == ins_pg-1:
+            for src_page in pages:
+                pdf_writer.addPage(src_reader.getPage(int(src_page)-1))
+            pdf_writer.addPage(dest_reader.getPage(page))
+        else:
+            pdf_writer.addPage(dest_reader.getPage(page))
+
+    # Write to output.
+    with open(dest, 'wb') as output:
+        pdf_writer.write(output)
+    print("Successfully inserted pages", pages, "from", source, "into", dest)
+
+
+def reorder(source, dest, pages_in):
+    """Reorder the pages in a PDF."""
+    pdf_writer = PyPDF2.PdfFileWriter()
+
+    try:
+        src_reader = PyPDF2.PdfFileReader(source)
+    except FileNotFoundError:
+        print("File could not be opened.")
+        sys.exit(0)
+
+    pages = page_input(pages_in, src_reader.getNumPages())
+
+    for page in pages:
+        pdf_writer.addPage(src_reader.getPage(int(page)-1))
+
+    with open(dest, 'wb') as output:
+        pdf_writer.write(output)
+    print("Successfully reordered", source)
+
+
+def main():
+    """PDF Manipulation Tools."""
+    # Deal with merge.
+    if MERGE is not None:
+        if len(MERGE) != 3:
+            print("Bad input for --merge. Call --help for more information.")
+            sys.exit(0)
+        merge(MERGE[0:-1], MERGE[-1])
+    # Deal with remove.
+    elif REMOVE is not None:
+        if len(REMOVE) < 2:
+            print("Bad input for --remove. Call --help for more information.")
+            sys.exit(0)
+        remove(REMOVE[0], REMOVE[1])
+    # Deal with swap.
+    elif SWAP is not None:
+        swap(SWAP[0], int(SWAP[1])-1, int(SWAP[2])-1)
+    # Deal with insert.
+    elif INSERT is not None:
+        insert(INSERT[0], int(INSERT[1]), INSERT[2], INSERT[3])
+    # Deal with reorder.
+    elif REORDER is not None:
+        reorder(REORDER[0], REORDER[1], REORDER[2])
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="""Command Line PDF Manipulation Tool.""")
+    parser.add_argument('-m', "--merge", nargs=argparse.REMAINDER,
+                        help="Merge PDF files: [files] [output]")
+    parser.add_argument('-r', "--remove", nargs=2,
+                        help="Remove pages from PDF: [file] [pages" +
+                        "(e.g. 1,3,7) or range (e.g. 2:7)]")
+    parser.add_argument('-s', "--swap", nargs=3,
+                        help="Swap pages in PDF: [file] [pg_one] [pg_two]")
+    parser.add_argument('-i', "--insert", nargs=4,
+                        help="Insert pages from one PDF into another: [dest]" +
+                        " [insert location (page)] [source] [pages to insert" +
+                        "(e.g. 1,3,7) or range (e.g. 2:7)]")
+    parser.add_argument('-o', "--reorder", nargs=3,
+                        help="Reorder pages in PDF: [source] [dest] [order]")
+
+    args = parser.parse_args()
+    MERGE = args.merge
+    REMOVE = args.remove
+    SWAP = args.swap
+    INSERT = args.insert
+    REORDER = args.reorder
+
+    if (MERGE is None and REMOVE is None and SWAP is None and
+            INSERT is None and REORDER is None):
+        parser.print_help()
+        sys.exit(0)
+
+    main()
