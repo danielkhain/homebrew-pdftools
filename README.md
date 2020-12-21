@@ -10,4 +10,5 @@ This tool offers five functions: merge, remove, swap, insert, and reorder. The m
 3. Type `./bin/install` into the command line.
 4. Type `open ~/.bash_profile` into the command line.
 5. Add `alias pdftools='/Users/[user]/bin/pdftools'` to the bottom of `~/.bash_profile`.
-6. Delete the cloned directory. The pdf tool can now be run by typing `pdftools -h` in the terminal.
+6. Close the terminal and open a new window.
+7. Delete the cloned directory. The pdf tool can now be run by typing `pdftools -h` in the terminal.
