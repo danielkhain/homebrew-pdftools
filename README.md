@@ -8,4 +8,5 @@ This tool offers five functions: merge, remove, swap, insert, and reorder. The m
 1. Type `git clone https://github.com/danielkhain/homebrew-pdftools.git` into the command line.
 2. Enter the directory.
 3. Type `./bin/install` into the command line.
-
+4. Type `nano ~/.bash_profile' into the command line.
+5. Add `alias pdftools='/Users/[user]/bin/pdftools` to the bottom of `~/.bash_profile'.
